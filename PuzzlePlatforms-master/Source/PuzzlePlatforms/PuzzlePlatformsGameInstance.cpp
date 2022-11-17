@@ -5,6 +5,8 @@
 #include "Engine/Engine.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
+#include "MenuSystem/MainMenu.h"
+#include "MenuSystem/MenuWidget.h"
 #include "PlatformTrigger.h"
 
 UPuzzlePlatformsGameInstance::UPuzzlePlatformsGameInstance(const FObjectInitializer & ObjectInitializer)
@@ -15,31 +17,35 @@ UPuzzlePlatformsGameInstance::UPuzzlePlatformsGameInstance(const FObjectInitiali
     {
         MenuClass = MenuSystemWBPClass.Class;
     }    
+
+    ConstructorHelpers::FClassFinder<UUserWidget> PauseMenuSystemWBPClass(TEXT("/Game/MenuSystem/WBP_PauseMenu"));
+
+    if (PauseMenuSystemWBPClass.Class != nullptr)
+    {
+        PauseMenuClass = PauseMenuSystemWBPClass.Class;
+    }
 }
 
 void UPuzzlePlatformsGameInstance::LoadMenu()
 {
     if (MenuClass == nullptr) return;
     
-    UUserWidget* Menu = CreateWidget<UUserWidget>(this, MenuClass);
+    Menu = CreateWidget<UMainMenu>(this, MenuClass);
     if (Menu == nullptr) return;
-       
-    Menu->AddToViewport();
-    
-    APlayerController* PlayerController = GetFirstLocalPlayerController();
-    if(PlayerController == nullptr) return;
-    
-    TSharedRef<SWidget> MenuInput = Menu->TakeWidget();
 
-    FInputModeUIOnly InputModeData;
-    InputModeData.SetWidgetToFocus(MenuInput);
-    InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-    PlayerController->SetInputMode(InputModeData);
-    PlayerController->bShowMouseCursor = true;
-
+    Menu->Setup();   
+    Menu->SetMenuInterface(this);
 }
 
+void UPuzzlePlatformsGameInstance::LoadPauseMenu()
+{
+    if (PauseMenuClass == nullptr) return;
+
+    UMenuWidget* PauseMenu = CreateWidget<UMenuWidget>(this, PauseMenuClass);
+    if (PauseMenu == nullptr) return;
+    PauseMenu->Setup();
+    PauseMenu->SetMenuInterface(this);
+}
 
 void UPuzzlePlatformsGameInstance::Init()
 {
@@ -79,4 +85,7 @@ void UPuzzlePlatformsGameInstance::Join(const FString& Address)
     }
 }
    
-
+void UPuzzlePlatformsGameInstance::Quit()
+{
+    this->ReturnToMainMenu();
+}
